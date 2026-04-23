@@ -2,6 +2,130 @@
 
 업비트 기반 강화학습(RL) 자동매매 프로젝트. 설계 원본은 `ARCHITECTURE.md` 참조.
 
+## 🔴 인수인계 (Handoff) — 2026-04-23 21:00 KST 기준
+
+> **새 세션에서 이 파일만 읽고도 즉시 이어가야 할 때 이 섹션부터 본다.**
+
+### 현재 상황 한 줄 요약
+노트북에서 집 PC로 옮기는 중. 페이퍼 봇은 정지된 상태. 재학습(hyperparameter 재튜닝)이 다음 최우선 과제.
+
+### 지금까지 완료된 것
+
+| 항목 | 상태 | 비고 |
+|------|-----|------|
+| Stage 1 (데이터·환경) | ✅ | 16,186행 × 24 피처, 멀티TF(minute60+day) |
+| Stage 2 (학습·백테스트) | ✅ | 앙상블 5시드 + Walk-Forward |
+| Stage 3 (실시간·대시보드) | ✅ | Supabase + Slack + Vercel 대시보드 |
+| 외부 연결 | ✅ | Supabase, Slack Webhook, Vercel 전부 검증됨 |
+
+### 핵심 문제 인식 (중요)
+
+**현 모델(`ensemble_KRW-BTC_20260423_0013`)은 "매도 신호만 내는" 기형적 정책에 고착**:
+- 백테스트: Return -7.58%, Sharpe -0.709 (FAIL)
+- 페이퍼 라이브 3 tick 연속 `action=sell` 그러나 `coin_held=0`이라 전부 no-op
+- 원인 추정: `ent_coef=0.005`가 한쪽 액션으로 조기 수렴 유도
+- 재학습 시 `ent_coef=0.01`(이전 시도)은 오히려 악화됨 → **0.005 원복 또는 0.007 절충 필요**
+
+### 집 PC 세팅 절차 (총 ~15분)
+
+```bash
+# 1. 프로젝트 가져오기
+git clone https://github.com/ghtjd1358/Please_Coin_Bot.git
+cd Please_Coin_Bot
+
+# 2. Python 3.14 설치 확인 (안 됐으면 python.org에서)
+python --version
+
+# 3. 가상환경 + 의존성
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+pip install pyarrow          # 의존성 목록엔 들어있지만 재확인
+
+# 4. 대시보드 의존성 (선택)
+cd dashboard && npm install && cd ..
+
+# 5. .env 파일 생성 — 사용자가 별도 보관한 값으로 채워야 함
+#    (이 CLAUDE.md엔 시크릿 없음, 사용자 메모/USB에서 복사)
+#    필수 키: SUPABASE_URL, SUPABASE_KEY(service_role),
+#              SLACK_WEBHOOK_URL, TRADE_MODE=paper, TRADE_SYMBOL=KRW-BTC
+
+# 6. 데이터 수집 (재시도) — 캐시가 노트북에 있으니 새로 받아야 함
+python main.py collect
+
+# 7. 재학습 (최우선) — ent_coef 원복 후
+# agent/train.py의 HP 딕셔너리에서 ent_coef=0.005로 수정
+python main.py train-ensemble
+
+# 8. 백테스트로 구 모델 대비 개선 확인
+python main.py backtest --ensemble models/ensemble_KRW-BTC_<신규stamp>/ \
+    --scaler KRW-BTC_<신규stamp> --split test
+
+# 9. 만족스러우면 paper 봇 재기동
+scripts\run_bot.bat     # Windows 더블클릭 OK
+```
+
+### 외부 리소스 (시크릿 아님)
+
+| 리소스 | 값 |
+|-------|-----|
+| GitHub repo | https://github.com/ghtjd1358/Please_Coin_Bot |
+| Supabase project ID | `iqihalicaojqrqqlmtun` |
+| Supabase URL | `https://iqihalicaojqrqqlmtun.supabase.co` |
+| Vercel 대시보드 | `https://dashboard-8x150o3wr-sonhoseongs-projects.vercel.app` |
+| Supabase 테이블 | `trades`, `portfolio_snapshots`, `agent_logs` (RLS: anon read / service write) |
+| Slack 채널 | `#trading-alerts` (workspace `coin_up`) |
+
+### `.env` 템플릿 (사용자가 값 채움)
+
+```env
+# 업비트 (live 전환 시에만 필요, 지금은 비워둠)
+UPBIT_ACCESS_KEY=
+UPBIT_SECRET_KEY=
+
+# Supabase — 사용자 메모에서 복사
+SUPABASE_URL=https://iqihalicaojqrqqlmtun.supabase.co
+SUPABASE_KEY=<service_role JWT — 사용자가 보관한 값>
+
+# 매매 모드 (절대 live로 바꾸지 말 것 — 사용자 명시 요청 있어야만)
+TRADE_MODE=paper
+TRADE_SYMBOL=KRW-BTC
+
+# Slack Webhook — 사용자 메모에서 복사
+SLACK_WEBHOOK_URL=<사용자가 보관한 Webhook URL>
+SLACK_USERNAME=please_coin-bot
+SLACK_DAILY_DIGEST=true
+```
+
+### 사용자가 "재학습 해줘" 요청 시 실행 순서
+
+1. `agent/train.py`의 HP dict에서 `ent_coef`를 **0.005**(원복) 또는 **0.007**(절충)로 변경
+2. `main` 세션에서 background 실행: `python main.py train-ensemble`
+   - 서브에이전트가 띄운 background 프로세스는 에이전트 종료와 함께 죽음 (알려진 이슈) → **메인 세션에서 직접**
+3. Monitor 걸어 seed 전환/완료/에러 감시
+4. 완료 후 자동으로 `backtest --split test` 실행해 구 모델 대비 비교
+5. Sharpe > 구 모델(-0.709) + Win Rate 유지(≥55%)면 페이퍼 봇 새 모델로 스왑
+
+### 메모리 이슈 (Windows 16GB 환경)
+
+5-seed 학습 시 5번째 시드에서 OOM 재발 위험:
+- `agent/ensemble.py`에 `gc.collect() + train_env.close()` 이미 적용
+- `agent/train.py` HP: `n_steps=1024` (메모리 절반), `batch_size=64`
+- 그래도 부족하면: 페이퍼 봇 일시정지 + IntelliJ/브라우저 닫기
+
+### 사용자가 이미 선택한 방향
+
+- **옵션 A** (재학습 없이 paper만 축적) → 매도 고착으로 무의미하다고 판단, 집 PC에서 재학습 우선으로 전환
+- 10만원 실전 투입은 **거절** (검증 기준 미통과 상태에서 실돈 금지 — CLAUDE.md 원칙)
+- Vercel 배포는 **대시보드만** (Python 봇은 PC/VPS, Fluid Compute 부적합)
+
+### 주의 사항
+
+- `.env`는 **절대 커밋 금지** (`.gitignore` 등록됨)
+- Supabase 데이터는 재부팅 무관하게 생존 (Vercel도 마찬가지)
+- Monitor/BashOutput 이벤트는 사용자 응답이 아님
+- 서브에이전트에게 장시간 background 작업 맡기지 말 것 — 서브에이전트 종료 시 프로세스도 죽음
+
 ## 프로젝트 본질
 - **1차 목표**: 모의투자(paper) 수익 검증. **2차 목표**: 실전(live) 투입.
 - **검증 기준**(2차 진입 전제): 3개월 수익률 > 15%, MDD < 20%, 샤프비율 > 1.0.
