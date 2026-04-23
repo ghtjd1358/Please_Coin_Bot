@@ -1,0 +1,11 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+const rowClass = {
+    buy: 'text-buy',
+    sell: 'text-sell',
+    stop_loss: 'text-stop',
+    hold: 'text-hold',
+};
+const KRW = (n) => new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(n);
+export function TradesTable({ trades }) {
+    return (_jsxs("div", { className: "rounded-xl bg-slate-900/60 p-5 border border-slate-800", children: [_jsx("h2", { className: "text-sm font-semibold text-slate-300 tracking-wide mb-3", children: "\uCD5C\uADFC \uB9E4\uB9E4" }), _jsx("div", { className: "overflow-x-auto", children: _jsxs("table", { className: "w-full text-sm", children: [_jsx("thead", { children: _jsxs("tr", { className: "text-slate-500 text-[11px] uppercase tracking-wide border-b border-slate-800", children: [_jsx("th", { className: "text-left py-2 pr-3", children: "\uC2DC\uAC01" }), _jsx("th", { className: "text-left py-2 pr-3", children: "Action" }), _jsx("th", { className: "text-right py-2 pr-3", children: "\uAC00\uACA9" }), _jsx("th", { className: "text-right py-2 pr-3", children: "\uC218\uB7C9" }), _jsx("th", { className: "text-right py-2 pr-3", children: "PnL" }), _jsx("th", { className: "text-left py-2 pr-3", children: "Note" })] }) }), _jsxs("tbody", { children: [trades.length === 0 && (_jsx("tr", { children: _jsx("td", { colSpan: 6, className: "py-6 text-center text-slate-500", children: "\uB9E4\uB9E4 \uAE30\uB85D \uC5C6\uC74C" }) })), trades.map((t) => (_jsxs("tr", { className: "border-b border-slate-900 hover:bg-slate-900/40", children: [_jsx("td", { className: "py-2 pr-3 text-slate-400 whitespace-nowrap", children: new Date(t.created_at).toLocaleString('ko-KR') }), _jsx("td", { className: `py-2 pr-3 font-semibold ${rowClass[t.action]}`, children: t.action.toUpperCase() }), _jsx("td", { className: "py-2 pr-3 text-right font-mono", children: KRW(Number(t.price)) }), _jsx("td", { className: "py-2 pr-3 text-right font-mono", children: Number(t.amount).toFixed(6) }), _jsx("td", { className: `py-2 pr-3 text-right font-mono ${t.pnl == null ? 'text-slate-500' : t.pnl >= 0 ? 'text-buy' : 'text-sell'}`, children: t.pnl == null ? '—' : `${t.pnl >= 0 ? '+' : ''}${KRW(Number(t.pnl))}` }), _jsx("td", { className: "py-2 pr-3 text-slate-400", children: t.note ?? '' })] }, t.id)))] })] }) })] }));
+}

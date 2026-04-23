@@ -1,0 +1,10 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+const KRW = (n) => new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 }).format(Number(n)) + '원';
+const PCT = (n) => `${(Number(n) * 100).toFixed(2)}%`;
+export function PortfolioCard({ snapshot }) {
+    if (!snapshot) {
+        return (_jsx("div", { className: "rounded-xl bg-slate-900/60 p-5 border border-slate-800", children: _jsx("div", { className: "text-slate-400 text-sm", children: "\uD3EC\uD2B8\uD3F4\uB9AC\uC624 \uB370\uC774\uD130 \uB300\uAE30 \uC911\u2026" }) }));
+    }
+    const positive = Number(snapshot.unrealized_pnl) >= 0;
+    return (_jsxs("div", { className: "rounded-xl bg-slate-900/60 p-5 border border-slate-800", children: [_jsxs("div", { className: "flex items-center justify-between mb-4", children: [_jsx("h2", { className: "text-sm font-semibold text-slate-300 tracking-wide", children: "\uD3EC\uD2B8\uD3F4\uB9AC\uC624" }), _jsx("span", { className: "text-xs text-slate-500 uppercase", children: snapshot.mode })] }), _jsx("div", { className: "text-3xl font-bold mb-1", children: KRW(snapshot.total_value) }), _jsxs("div", { className: `text-sm mb-5 ${positive ? 'text-buy' : 'text-sell'}`, children: ["\uBBF8\uC2E4\uD604 ", positive ? '+' : '', PCT(snapshot.unrealized_pnl)] }), _jsxs("dl", { className: "grid grid-cols-2 gap-y-2 text-sm", children: [_jsx("dt", { className: "text-slate-400", children: "\uD604\uAE08 \uC794\uACE0" }), _jsx("dd", { className: "text-right", children: KRW(snapshot.balance) }), _jsx("dt", { className: "text-slate-400", children: "\uCF54\uC778 \uBCF4\uC720" }), _jsx("dd", { className: "text-right font-mono", children: Number(snapshot.coin_held).toFixed(6) }), _jsx("dt", { className: "text-slate-400", children: "\uD3C9\uADE0 \uB9E4\uC218\uAC00" }), _jsx("dd", { className: "text-right", children: Number(snapshot.avg_buy_price) > 0 ? KRW(snapshot.avg_buy_price) : '—' }), _jsx("dt", { className: "text-slate-400", children: "\uD604\uC7AC\uAC00" }), _jsx("dd", { className: "text-right", children: KRW(snapshot.current_price) })] })] }));
+}

@@ -1,0 +1,2 @@
+- [Stage 3 spec](project_stage3_spec.md) — paper trading + Supabase + dashboard rules, do not touch Stages 1-2
+- [Stage 3 file map](reference_stage3_files.md) — locations of SupabaseLogger / live_trader / dashboard components

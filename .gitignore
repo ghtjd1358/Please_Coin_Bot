@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+# (가상환경은 .venv/ 또는 venv/만 무시. 프로젝트 env/ 모듈은 커밋된다)
+
+# 환경 변수
+.env
+.env.*
+!.env.example
+
+# 모델 체크포인트
+models/
+runs/
+reports/
+data/cache/
+
+# 대시보드
+dashboard/node_modules/
+dashboard/.next/
+dashboard/dist/
+dashboard/build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# 로그
+*.log
+logs/
